@@ -2,9 +2,21 @@ var DomArray = (function() {
 
 	// constructor
 
-	function DomArray(parent, renderer) {
+	function DomArray(collection, parent, renderer) {
 		this.parent = parent;
 		this.renderer = renderer;
+		this.collection = collection;
+		this.nodeMap = typeof Map === 'function' ? new Map() : null;
+
+		this.push.apply(this, collection);
+
+		// observe changes on collection if it's observable
+		if (typeof collection.on === 'function') {
+			var methods = 'shift pop unshift push splice reverse sort'.split(' ');
+			each(methods, function(method) {
+				collection.on(method, this[method].bind(this));
+			}, this);
+		}
 	};
 
 
@@ -22,13 +34,15 @@ var DomArray = (function() {
 	// methods that add items
 
 	DomArray.prototype.push = function() {
-		var appendable = renderAll(arguments, this.renderer);
-		this.parent.appendChild(appendable);
+		if (!arguments.length) return;
+		var node = renderAll(arguments, this.renderer);
+		this.parent.appendChild(node);
 	};
 
 	DomArray.prototype.unshift = function() {
-		var appendable = renderAll(arguments, this.renderer);
-		this.parent.insertBefore(appendable, this.parent.firstChild);
+		if (!arguments.length) return;
+		var node = renderAll(arguments, this.renderer);
+		this.parent.insertBefore(node, this.parent.firstChild);
 	};
 
 
@@ -50,8 +64,8 @@ var DomArray = (function() {
 		// add new elements at index `start`
 		if (arguments.length > 2) {
 			var newItems = [].slice.call(arguments, 2);
-			var appendable = renderAll(newItems, this.renderer);
-			this.parent.insertBefore(appendable, childNodes[start]);
+			var node = renderAll(newItems, this.renderer);
+			this.parent.insertBefore(node, childNodes[start]);
 		}
 	};
 
@@ -69,24 +83,40 @@ var DomArray = (function() {
 		this.parent.appendChild(docFrag);
 	};
 
+	DomArray.prototype.sort = function() {
+		if (!nodeMap) throw new TypeError('DomArray.prototype.sort() requires Map support.');
+		var docFrag = document.createDocumentFragment();
+		each(this.collection, function(obj){
+			var node = this.nodeMap.get(obj);
+			parent.removeChild(node);
+			docFrag.appendChild(node);
+		});
+		parent.appendChild(docFrag);
+	};
+
 
 	// helper functions
 
+	function each(arr, fn, scope) {
+		for (var i = 0, l = arr.length; i < l; i++) {
+			fn.call(scope, arr[i], i, arr);
+		}
+	}
+
 	// renderAll returns a single node containing the rendered nodes
 	function renderAll(collection, renderer) {
-		// call renderer (should return a DOM node) for each item in collection
-		var elements = [].map.call(collection, function() {
-			return renderer.apply(null, arguments);
-		});
-
-		if (elements.length > 1) {
+		var nodeMap = this.nodeMap;
+		if (collection.length > 1) {
 			var docFrag = document.createDocumentFragment();
-			elements.forEach(function(el) {
-				docFrag.appendChild(el);
+			each(collection, function(item) {
+				// call renderer (should return a DOM node) for each item in collection
+				var node = renderer.apply(null, arguments);
+				if (nodeMap) nodeMap.set(item, node);
+				docFrag.appendChild(node);
 			});
 			return docFrag;
 		} else {
-			return elements[0];
+			return renderer.apply(null, arguments);
 		}
 	}
 
