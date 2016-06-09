@@ -3,19 +3,23 @@ var DomArray = (function() {
 	// constructor
 
 	function DomArray(collection, parent, renderer) {
-		this.parent = parent;
-		this.renderer = renderer;
-		this.collection = collection;
-		this.nodeMap = typeof Map === 'function' ? new Map() : null;
+		var t = this;
+		t.parent = parent;
+		t.renderer = renderer;
+		t.collection = collection;
+		t.nodeMap = typeof Map === 'function' ? new Map() : null;
 
-		this.push.apply(this, collection);
+		t.push.apply(t, collection);
 
 		// observe changes on collection if it's observable
 		if (typeof collection.on === 'function') {
 			var methods = 'shift pop unshift push splice reverse sort'.split(' ');
 			each(methods, function(method) {
-				collection.on(method, this[method].bind(this));
-			}, this);
+				collection.on(method, function(method) {
+					var methodArgs = sliceArr.call(arguments, 1);
+					t[method].apply(t, methodArgs);
+				});
+			});
 		}
 	};
 
@@ -97,6 +101,8 @@ var DomArray = (function() {
 
 	// helper functions
 
+	var sliceArr = [].slice;
+
 	function each(arr, fn, scope) {
 		for (var i = 0, l = arr.length; i < l; i++) {
 			fn.call(scope, arr[i], i, arr);
@@ -116,7 +122,7 @@ var DomArray = (function() {
 			});
 			return docFrag;
 		} else {
-			return renderer.apply(null, arguments);
+			return renderer(collection[0], 0, collection);
 		}
 	}
 
