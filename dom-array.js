@@ -93,10 +93,10 @@ var DomArray = (function() {
 		var docFrag = document.createDocumentFragment();
 		each(this.collection, function(obj){
 			var node = this.nodeMap.get(obj);
-			parent.removeChild(node);
+			this.parent.removeChild(node);
 			docFrag.appendChild(node);
-		});
-		parent.appendChild(docFrag);
+		}, this);
+		this.parent.appendChild(docFrag);
 	};
 
 
