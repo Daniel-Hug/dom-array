@@ -9,6 +9,7 @@ var DomArray = (function() {
 		t.collection = collection;
 		t.nodeMap = typeof Map === 'function' ? new Map() : null;
 
+		// render and append each item in collection
 		t.push.apply(t, collection);
 
 		// observe changes on collection if it's observable
@@ -39,13 +40,13 @@ var DomArray = (function() {
 
 	DomArray.prototype.push = function() {
 		if (!arguments.length) return;
-		var node = renderAll(arguments, this.renderer);
+		var node = renderAll(this.nodeMap, arguments, this.renderer);
 		this.parent.appendChild(node);
 	};
 
 	DomArray.prototype.unshift = function() {
 		if (!arguments.length) return;
-		var node = renderAll(arguments, this.renderer);
+		var node = renderAll(this.nodeMap, arguments, this.renderer);
 		this.parent.insertBefore(node, this.parent.firstChild);
 	};
 
@@ -68,7 +69,7 @@ var DomArray = (function() {
 		// add new elements at index `start`
 		if (arguments.length > 2) {
 			var newItems = [].slice.call(arguments, 2);
-			var node = renderAll(newItems, this.renderer);
+			var node = renderAll(this.nodeMap, newItems, this.renderer);
 			this.parent.insertBefore(node, childNodes[start]);
 		}
 	};
@@ -88,7 +89,7 @@ var DomArray = (function() {
 	};
 
 	DomArray.prototype.sort = function() {
-		if (!nodeMap) throw new TypeError('DomArray.prototype.sort() requires Map support.');
+		if (!this.nodeMap) throw new TypeError('DomArray.prototype.sort() requires Map support.');
 		var docFrag = document.createDocumentFragment();
 		each(this.collection, function(obj){
 			var node = this.nodeMap.get(obj);
@@ -110,8 +111,7 @@ var DomArray = (function() {
 	}
 
 	// renderAll returns a single node containing the rendered nodes
-	function renderAll(collection, renderer) {
-		var nodeMap = this.nodeMap;
+	function renderAll(nodeMap, collection, renderer) {
 		if (collection.length > 1) {
 			var docFrag = document.createDocumentFragment();
 			each(collection, function(item) {
